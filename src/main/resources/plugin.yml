@@ -1,0 +1,4 @@
+name: Bow Mechanics Fix
+version: '${project.version}'
+main: net.nthbyte.bowmechanicsfix.BowMechanicsFix
+api-version: 1.16
