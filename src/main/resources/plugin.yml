@@ -1,4 +1,13 @@
-name: Bow Mechanics Fix
+name: BowMechanicsFix
 version: '${project.version}'
 main: net.nthbyte.bowmechanicsfix.BowMechanicsFix
 api-version: 1.16
+
+commands:
+  bowmechanicsfix:
+    aliases:
+      - bmf
+      - bowmf
+      - bowmechanicsf
+      - bmechf
+      - bmechfix

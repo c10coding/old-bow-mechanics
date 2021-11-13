@@ -3,11 +3,13 @@ package net.nthbyte.bowmechanicsfix;
 import net.dohaw.corelib.CoreLib;
 import net.dohaw.corelib.JPUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.EntityEffect;
 import org.bukkit.Location;
-import org.bukkit.entity.Arrow;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.*;
@@ -16,13 +18,18 @@ import org.bukkit.util.Vector;
 
 import java.util.Collection;
 
-public final class BowMechanicsFix extends JavaPlugin implements Listener {
+public final class BowMechanicsFix extends JavaPlugin implements Listener, CommandExecutor {
+
+    private BaseConfig baseConfig;
 
     @Override
     public void onEnable() {
         // Plugin startup logic
         CoreLib.setInstance(this);
         JPUtils.registerEvents(this);
+        JPUtils.validateFiles("config.yml");
+        this.baseConfig = new BaseConfig();
+        JPUtils.registerCommand("bowmechanicsfix", this);
     }
 
     @Override
@@ -32,11 +39,11 @@ public final class BowMechanicsFix extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onProjectileFire(EntityShootBowEvent e){
-        System.out.println("LAUNCHED");
+        System.out.println("FIRE");
         Entity entity = e.getEntity();
         Entity projectile = e.getProjectile();
-        if(projectile instanceof Arrow){
-            Arrow arrow = (Arrow) projectile;
+        if(projectile instanceof SpectralArrow){
+            SpectralArrow arrow = (SpectralArrow) projectile;
             if(!(arrow.getShooter() instanceof Player)){
                 return;
             }
@@ -54,13 +61,16 @@ public final class BowMechanicsFix extends JavaPlugin implements Listener {
                                 addVelocity(shooter, vec_.getX(), 0.45D, vec_.getZ());
                             }
                         } else {
-                            Vector vec_ = arrowVelocity_.normalize().multiply(0.4D);
+                            Vector vec_ = arrowVelocity_.normalize().multiply(baseConfig.getVelocityScale());
                             if (vec_.length() > 0.0D) {
                                 addVelocity(shooter, vec_.getX(), 0.45D, vec_.getZ());
                             }
                         }
+                        shooter.playEffect(EntityEffect.HURT);
+                        shooter.damage(1);
+                        arrow.remove();
+                        return;
                     }
-                    arrow.remove();
                 }
             }, 5L);
         }
@@ -69,10 +79,12 @@ public final class BowMechanicsFix extends JavaPlugin implements Listener {
     @EventHandler
     public void onEntityTakeDamage(ProjectileHitEvent e){
         Projectile projectile = e.getEntity();
-        if(projectile instanceof Arrow && e.getHitEntity() != null){
+        if(projectile instanceof SpectralArrow && e.getHitEntity() != null && e.getHitEntity() instanceof LivingEntity){
+            LivingEntity hitEntity = (LivingEntity) e.getHitEntity();
             if(projectile.getShooter() instanceof Player){
-                if(((Player) projectile.getShooter()).getUniqueId().equals(e.getHitEntity().getUniqueId()) && projectile.getTicksLived() > 6){
-                    System.out.println("They have hit themseleves");
+                if(((Player) projectile.getShooter()).getUniqueId().equals(hitEntity.getUniqueId()) && projectile.getTicksLived() > 6){
+                    hitEntity.playEffect(EntityEffect.HURT);
+                    hitEntity.damage(0.3);
                     projectile.remove();
                 }
             }
@@ -90,6 +102,16 @@ public final class BowMechanicsFix extends JavaPlugin implements Listener {
 
     public void addVelocity(Player player, double d0, double d1, double d2) {
         player.setVelocity(player.getVelocity().add(new Vector(d0, d1, d2)));
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if(args.length != 0 && args[0].equalsIgnoreCase("reload")){
+            baseConfig.reloadConfig();
+            sender.sendMessage(ChatColor.GREEN + "The plugin has been reloaded!");
+            return true;
+        }
+        return false;
     }
 
 }
